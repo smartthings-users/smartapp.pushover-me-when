@@ -51,13 +51,13 @@ preferences
 
 def installed()
 {
-    log.debug "Installed with settings: ${settings}"
+    log.debug "'Pushover Me When' installed with settings: ${settings}"
     initialize()
 }
 
 def updated()
 {
-    log.debug "Updated with settings: ${settings}"
+    log.debug "'Pushover Me When' updated with settings: ${settings}"
     unsubscribe()
     initialize()
 }
@@ -101,66 +101,71 @@ def handler(evt) {
 
     if (push == "Yes")
     {
-        sendPush("${evt.displayName} is ${evt.value}");
+        sendPush("${evt.displayName} is ${evt.value} [Sent from 'Pushover Me When']");
     }
 
-    if (apiKey && userKey)
+    // Define the initial postBody keys and values for all messages
+    def postBody = [
+        token: "$apiKey",
+        user: "$userKey",
+        message: "${evt.displayName} is ${evt.value}",
+        priority: 0
+    ]
+
+    // Set priority and potential postBody variables based on the user preferences
+    switch ( priority ) {
+        case "Low":
+            postBody['priority'] = -1
+            break
+
+        case "High":
+            postBody['priority'] = 1
+            break
+
+        case "Emergency":
+            postBody['priority'] = 2
+            postBody['retry'] = "60"
+            postBody['expire'] = "3600"
+            break
+    }
+
+    // We only have to define the device if we are sending to a single device
+    if (deviceName)
     {
-        log.debug "Sending Pushover with API Key [$apiKey] and User Key [$userKey]"
+        log.debug "Sending Pushover to Device: $deviceName"
+        postBody['device'] = "$deviceName"
+    }
+    else
+    {
+        log.debug "Sending Pushover to All Devices"
+    }
 
-        // Define the initial postBody keys and values for all messages
-        def postBody = [
-            token: "$apiKey",
-            user: "$userKey",
-            message: "${evt.displayName} is ${evt.value}",
-            priority: "$pushPriority"
-        ]
+    // Prepare the package to be sent
+    def params = [
+        uri: "https://api.pushover.net/1/messages.json",
+        body: postBody
+    ]
 
-        // Declare pushPriority as Normal to limit logic as it is the most used type
-        def pushPriority = 0
+    log.debug postBody
 
-        // Set priority and potential postBody variables based on the user preferences
-        switch ( priority ) {
-            case "Low":
-                postBody['priority'] = -1
-                break
-
-            case "High":
-                postBody['priority'] = 1
-                break
-
-            case "Emergency":
-                postBody['priority'] = 2
-                postBody['retry'] = "60"
-                postBody['expire'] = "3600"
-                break
-        }
-
-        if (deviceName)
-        {
-            log.debug "Sending Pushover to Device: $deviceName"
-            postBody['device'] = "$deviceName"
-        }
-        else
-        {
-            log.debug "Sending Pushover to All Devices"
-        }
-
-        def params = [
-            uri: "https://api.pushover.net/1/messages.json",
-            body: postBody
-        ]
-
-        log.debug postBody
-
+    if ((apiKey =~ /[A-Za-z0-9]{30}/) && (userKey =~ /[A-Za-z0-9]{30}/))
+    {
+        log.debug "Sending Pushover: API key '${apiKey}' | User key '${userKey}'"
         httpPost(params){
             response ->
-                log.debug "Response Received: Status [$response.status]"
-
                 if(response.status != 200)
                 {
-                    sendPush("Received HTTP Error Response ${response.status}. Check Install Parameters!")
+                    sendPush("ERROR: 'Pushover Me When' received HTTP error ${response.status}. Check your keys!")
+                    log.error "Received HTTP error ${response.status}. Check your keys!"
+                }
+                else
+                {
+                    log.debug "HTTP response received [$response.status]"
                 }
         }
+    }
+    else {
+        // Do not sendPush() here, the user may have intentionally set up bad keys for testing.
+        log.error "API key '${apiKey}' or User key '${userKey}' is not properly formatted!"
     }
 }
