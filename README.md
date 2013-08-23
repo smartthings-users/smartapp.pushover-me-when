@@ -3,6 +3,8 @@ smartapp.pushover-me-when
 
 Send a Pushover notification when a device event occurs.
 
+![Pushover Sample Screenshot](https://github.com/smartthings-users/smartapp.pushover-me-when/raw/master/doc/pushover-me-when.png "Pushover Sample Screenshot")
+
 ## Installation
 
 1. Browse to My SmartApps (https://graph.api.smartthings.com/ide/apps)
