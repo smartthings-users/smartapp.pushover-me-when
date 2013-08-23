@@ -30,6 +30,7 @@ preferences
         input "contactSensors", "capability.contactSensor", title: "Which Contact Sensors?", multiple: true, required: false
         input "presenceSensors", "capability.presenceSensor", title: "Which Presence Sensors?", multiple: true, required: false
         input "accelerationSensors", "capability.accelerationSensor", title: "Which Acceleration Sensors?", multiple: true, required: false
+        input "locks", "capability.lock", title: "Which Locks?", multiple: true, required: false
     }
     section("Application...") {
         input "push", "enum", title: "SmartThings App Notification?", required: true, multiple: false,
@@ -88,6 +89,10 @@ def initialize()
     if (accelerationSensors) {
         // acceleration.active or acceleration.inactive
         subscribe(accelerationSensors, "acceleration", handler)
+    }
+    if (locks) {
+        // lock.locked or lock.unlocked
+        subscribe(locks, "lock", handler)
     }
 }
 
